@@ -503,6 +503,7 @@
         </div>
         <div class="action-row">
           <button class="btn btn-primary" id="addSigBtn" disabled>현재 페이지에 서명 추가</button>
+          <button class="btn btn-secondary" id="addHolderSigBtn" disabled title="예금주가 고객명과 다를 때 사용">예금주 서명</button>
         </div>
         <p style="margin-top:8px; font-size:11px; color:#999; text-align:center; line-height:1.6;">
           💡 <strong>더블클릭</strong> 텍스트 입력 · <strong>Ctrl+클릭</strong> 서명 · <strong>Shift+클릭</strong> V체크<br>
@@ -674,8 +675,8 @@ function detectPdfType(filename) {
 const SIG_COORDS = {
   service_p1: [
     { x: 76.6, y: 93.6, fontSize: 22 },
-    { x: 72.2, y: 75.0, fontSize: 24 },
-    { x: 75.6, y: 13.1, fontSize: 22 },
+    { x: 76.6, y: 93.6, fontSize: 22 },
+    { x: 72.0, y: 74.8, fontSize: 22, useAccountHolder: true },  // 예금주/카드주 서명칸
     { x: 75.7, y: 16.9, fontSize: 22 },
     { x: 79.3, y: 45.0, fontSize: 20 },
   ],
@@ -1139,6 +1140,7 @@ async function handlePdfFiles(files, skipToast = false) {
   $('printBtn').disabled = state.pages.length === 0;
   $('saveJpgBtn').disabled = state.pages.length === 0;
   $('addSigBtn').disabled = state.pages.length === 0;
+  $('addHolderSigBtn').disabled = state.pages.length === 0;
   if (!skipToast) showToast('PDF 로드 완료!');
 
   if ($('sigAllCheckbox').checked) {
@@ -2061,10 +2063,14 @@ function applySignatureToAll(name) {
     const sigList = SIG_COORDS[pageKey];
     if (!sigList || sigList.length === 0) continue;
     sigList.forEach((coord, idx) => {
+      // useAccountHolder: true 칸은 예금주 이름, 나머지는 서명 이름
+      const sigText = (coord.useAccountHolder && state.data.accountHolder)
+        ? state.data.accountHolder
+        : name;
       const overlay = {
         id: 'sigall_' + page.id + '_' + idx + '_' + Date.now(),
         x: coord.x, y: coord.y, fontSize: coord.fontSize || 22,
-        text: name, kind: 'signature', sigFont: sigFont, manual: true, sigAll: true,
+        text: sigText, kind: 'signature', sigFont: sigFont, manual: true, sigAll: true,
       };
       state.overlays[page.id].push(overlay);
       addedCount++;
@@ -2124,6 +2130,23 @@ function updateSigPreview() {
   else if (font === 'font-single') preview.style.fontFamily = "'Single Day', cursive";
   else preview.style.fontFamily = "'Nanum Pen Script', cursive";
 }
+
+$('addHolderSigBtn').onclick = () => {
+  const holderName = state.data.accountHolder || '';
+  if (!holderName) { showToast('파싱된 예금주 정보가 없습니다'); return; }
+  if (state.pages.length === 0) return;
+  const page = state.pages[state.currentIdx];
+  const overlay = {
+    id: 'sig_holder_' + Date.now(),
+    x: 70, y: 50, fontSize: 22,
+    text: holderName, kind: 'signature',
+    sigFont: $('sigFont').value, manual: true,
+  };
+  state.overlays[page.id].push(overlay);
+  renderOverlays();
+  selectOverlay(overlay.id);
+  showToast(`예금주 "${holderName}" 서명 추가됨`);
+};
 
 $('addSigBtn').onclick = () => {
   const name = $('sigName').value.trim() || state.data.name || '';
