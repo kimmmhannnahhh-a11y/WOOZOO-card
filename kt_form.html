@@ -496,7 +496,7 @@
           <button class="btn btn-primary" id="addSigBtn" disabled>현재 페이지에 서명 추가</button>
         </div>
         <p style="margin-top:8px; font-size:11px; color:#999; text-align:center; line-height:1.6;">
-          💡 <strong>클릭</strong> 텍스트 입력 · <strong>Ctrl+클릭</strong> 서명 · <strong>Shift+클릭</strong> V체크<br>
+          💡 <strong>더블클릭</strong> 텍스트 입력 · <strong>Ctrl+클릭</strong> 서명 · <strong>Shift+클릭</strong> V체크<br>
           <strong>더블클릭</strong> 텍스트 편집 · <strong>Enter</strong> 줄바꿈 · <strong>방향키</strong> 미세이동<br>
           <strong>Ctrl+Z</strong> 되돌리기 · <strong>파란 핸들 드래그</strong> 크기조절
         </p>
@@ -1535,10 +1535,10 @@ function updateSelectedItem(props) {
 }
 
 /* =========================================
-   클릭으로 텍스트 박스 생성 (왼쪽 정렬 기준)
+   더블클릭으로 텍스트 박스 생성 (왼쪽 정렬 기준)
 ========================================= */
-// 일반 클릭 → 텍스트 박스 생성. 단 modifier키나 오버레이 위 클릭은 제외
-pdfStage.addEventListener('click', (e) => {
+// 더블클릭 → 텍스트 박스 생성. 단 modifier키나 오버레이 위 클릭은 제외
+pdfStage.addEventListener('dblclick', (e) => {
   // modifier 키 클릭은 다른 핸들러가 처리
   if (e.ctrlKey || e.shiftKey || e.metaKey || e.altKey) return;
   // 오버레이/버튼 위 클릭이면 무시
