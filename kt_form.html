@@ -487,18 +487,14 @@
           <input type="text" id="sigName" placeholder="예: 홍길동">
         </div>
 
-        <div style="display:flex; gap:8px; align-items:stretch;">
-          <label class="sig-all-row" id="sigAllRow" style="flex:1; margin:0;">
+        <label class="sig-all-row" id="sigAllRow">
             <input type="checkbox" id="sigAllCheckbox">
             <div class="text">
               <div class="label-main">서명 전체 적용</div>
               <div class="label-sub">지정된 모든 서명란에 자동 입력</div>
             </div>
           </label>
-          <button class="btn btn-secondary" id="addHolderSigBtn" disabled
-            title="예금주가 고객명과 다를 때 사용"
-            style="flex-shrink:0; font-size:12px; padding:8px 12px;">예금주<br>서명</button>
-        </div>
+        <button id="addHolderSigBtn" style="display:none" disabled></button>
 
         <div class="field-group">
           <label class="field-label">필기체 폰트</label>
@@ -681,9 +677,9 @@ function detectPdfType(filename) {
 const SIG_COORDS = {
   service_p1: [
     { x: 76.6, y: 93.6, fontSize: 22 },
-    { x: 76.6, y: 93.6, fontSize: 22 },
     { x: 71.0, y: 74.9, fontSize: 22, useAccountHolder: true },  // 예금주/카드주 서명칸
-    { x: 75.7, y: 16.9, fontSize: 22 },
+    { x: 75.4, y: 13.1, fontSize: 20 },
+    { x: 75.3, y: 16.9, fontSize: 20 },
     { x: 79.3, y: 45.0, fontSize: 20 },
   ],
   wired_p1: [
