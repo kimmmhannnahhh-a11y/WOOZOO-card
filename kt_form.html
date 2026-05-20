@@ -1654,16 +1654,15 @@ const FIELD_COORDS = {
     // ── 고객정보 ──
     name:          { x: 9.5, y: 9.0,  fontSize: 12 },  // 고객명
     birthDate:     { x: 41,  y: 9.0,  fontSize: 11 },  // 생년월일
-    gender_M:      { x: 61,  y: 8.8,  fontSize: 12, text: 'V' }, // 남 체크
-    gender_F:      { x: 65,  y: 8.8,  fontSize: 12, text: 'V' }, // 여 체크
+    gender_M:      { x: 62,  y: 8.6,  fontSize: 12, text: 'V' }, // 남 체크
+    gender_F:      { x: 66,  y: 8.6,  fontSize: 12, text: 'V' }, // 여 체크
     phone:         { x: 73,  y: 9.0,  fontSize: 11 },  // 핸드폰
     address:       { x: 9.5, y: 14.5, fontSize: 10 },  // 주소 줄1
     address2:      { x: 9.5, y: 17.5, fontSize: 10 },  // 주소 줄2
     // ── 요금납부 ──
     accountHolder: { x: 9.5, y: 52.5, fontSize: 11 },  // 예금주/카드주
     accountRrn:    { x: 50,  y: 52.5, fontSize: 11 },  // 예금주 생년월일
-    bank:          { x: 9.5, y: 57.5, fontSize: 10 },  // 은행(카드사)명
-    account:       { x: 28,  y: 57.5, fontSize: 10 },  // 계좌/카드번호
+    bankAccount:   { x: 9.5, y: 57.5, fontSize: 10 },  // 은행+계좌번호 합쳐서
     cardExp:       { x: 79,  y: 57.5, fontSize: 10 },  // 카드유효기간
   },
   // 유선신청서, 동의서 — 파싱 없음 (서명만 전체적용)
@@ -1790,6 +1789,11 @@ function parseMemo(text) {
   }
   if (!data.accountHolder) data.accountHolder = data.name;
   if (!data.accountRrn)    data.accountRrn    = data.rrn;
+
+  // 은행+계좌 합쳐서 하나로 (겹침 방지)
+  if (data.bank && data.account) {
+    data.bankAccount = data.bank + ' ' + data.account;
+  }
 
   // ── 상품 정보 ──
   data.carrier     = getSafe(/□\s*가입통신사[^:]*:\s*([^\n]*)/);
