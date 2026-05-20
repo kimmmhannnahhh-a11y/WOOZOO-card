@@ -1328,6 +1328,7 @@ function createOverlayElement(item) {
   // 줄바꿈 보존: <br>로 변환해서 표시
   el.innerHTML = textToHtml(item.text);
   el.dataset.itemId = item.id;
+  if (item.color) el.style.color = item.color;
   // 파싱 자동입력 텍스트/체크: 연한 노란색 배경
   if (item.id && item.id.startsWith('auto_') && (item.kind === 'text' || item.kind === 'check')) {
     el.classList.add('auto-fill');
@@ -1752,7 +1753,17 @@ function parseMemo(text) {
     }
     const holder = (!holderRaw || holderRaw === '본인') ? data.name : holderRaw;
     data.accountHolder = holder;
-    data.accountRrn    = holderBirth || (holder === data.name ? (data.birthDate || '') : '');
+    if (holderBirth) {
+      // 주민번호까지 있는 경우 → 생년월일 그대로 사용
+      data.accountRrn = holderBirth;
+    } else if (holder === data.name) {
+      // 본인인 경우 → 고객 생년월일
+      data.accountRrn = data.birthDate || '';
+    } else {
+      // 예금주 이름만 있고 생년월일 없는 경우 → ??? 표시
+      data.accountRrn = '???';
+      data.accountRrnMissing = true;  // 경고 플래그
+    }
 
     if (cardNumM) {
       data.bank    = bankM ? bankM[1] : '';
@@ -1872,6 +1883,7 @@ function applyDataToPages() {
         id: 'auto_'+page.id+'_'+field, x: coord.x, y: coord.y,
         fontSize: coord.fontSize||12, text: value,
         kind: coord.text ? 'check' : 'text', field,
+        color: (field === 'accountRrn' && value === '???') ? '#e60012' : null,
       };
       const savedKey = `pos_${page.type}_p${page.pageNum||1}_${field}`;
       const saved = localStorage.getItem(savedKey);
