@@ -113,10 +113,13 @@
     transform: translateY(-50%);
   }
   .overlay-item:hover { border-color: #e60012; background: rgba(230,0,18,0.05); }
-  .overlay-item.auto-fill { background: rgba(255, 245, 150, 0.75); }
-  .overlay-item.auto-fill:hover { background: rgba(255, 235, 100, 0.85); }
+  .overlay-item.auto-fill,
+  .overlay-item.checkmark.auto-fill { background: rgba(255, 245, 150, 0.75) !important; }
+  .overlay-item.auto-fill:hover,
+  .overlay-item.checkmark.auto-fill:hover { background: rgba(255, 235, 100, 0.9) !important; }
   @media print {
-    .overlay-item.auto-fill { background: transparent !important; }
+    .overlay-item.auto-fill,
+    .overlay-item.checkmark.auto-fill { background: transparent !important; }
     .overlay-item { border: none !important; background: transparent !important; }
   }
   .overlay-item.selected { border-color: #e60012; border-style: solid; background: rgba(230,0,18,0.08); }
@@ -129,7 +132,7 @@
     background: #e60012; color: white; border: 1px solid white; border-radius: 50%;
     font-size: 11px; line-height: 16px; text-align: center; cursor: pointer; display: none;
   }
-  .overlay-item.selected .del-btn, .overlay-item:hover .del-btn { display: block; }
+  .overlay-item.selected .del-btn { display: block; }
 
   /* 리사이즈 핸들 */
   .overlay-item .resize-handle {
@@ -670,7 +673,11 @@ function detectPdfType(filename) {
 
 const SIG_COORDS = {
   service_p1: [
-    { x: 76.6, y: 93.6, fontSize: 22 },  // 신청/가입자 서명
+    { x: 76.6, y: 93.6, fontSize: 22 },
+    { x: 72.2, y: 75.0, fontSize: 24 },
+    { x: 75.6, y: 13.1, fontSize: 22 },
+    { x: 75.7, y: 16.9, fontSize: 22 },
+    { x: 79.3, y: 45.0, fontSize: 20 },
   ],
   wired_p1: [
     { x: 79.0, y: 16.8, fontSize: 16 },
@@ -1688,8 +1695,14 @@ function parseMemo(text) {
     if (rrnMatch) {
       data.birthDate = rrnMatch[1];  // 앞 6자리만
       const genderCode = parseInt(rrnMatch[2]);
-      // 1,3=남성(M) / 2,4=여성(F)
-      data.gender = (genderCode === 1 || genderCode === 3) ? 'M' : 'F';
+      // 1,3=남(내국인) / 2,4=여(내국인) / 5,7=남(외국인) / 6,8=여(외국인)
+      if ([1,3,5,7].includes(genderCode)) {
+        data.gender = 'M';
+      } else if ([2,4,6,8].includes(genderCode)) {
+        data.gender = 'F';
+      }
+      // 외국인 여부
+      data.isForeigner = [5,6,7,8].includes(genderCode);
     } else {
       const onlyFront = rrnFull.match(/^(\d{6})/);
       if (onlyFront) data.birthDate = onlyFront[1];
