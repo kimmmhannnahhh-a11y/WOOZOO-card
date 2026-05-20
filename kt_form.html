@@ -1671,23 +1671,20 @@ function parseMemo(text) {
   // ── 기본 정보 ──
   data.name = getSafe(/■\s*고객명[^:]*:\s*([^\n]*)/);
 
-  // 식별번호 전체 저장 + 파생 필드 생성
+  // 식별번호 → 생년월일(앞6자리) + 성별만 추출, 전체 주민번호는 저장 안 함
   const rrnFull = getSafe(/■\s*식별번호[^:]*:\s*([^\n]*)/);
-  data.rrn = rrnFull;
   if (rrnFull) {
-    const rrnMatch = rrnFull.match(/(\d{6})[\-\s]?(\d{7})/);
+    const rrnMatch = rrnFull.match(/(\d{6})[\-\s]?(\d)(\d{6})/);
     if (rrnMatch) {
-      // 생년월일: 앞 6자리
-      data.birthDate = rrnMatch[1];
-      // 성별: 뒷자리 첫 숫자 (1,3=남 / 2,4=여)
-      const genderCode = parseInt(rrnMatch[2][0]);
+      data.birthDate = rrnMatch[1];  // 앞 6자리만
+      const genderCode = parseInt(rrnMatch[2]);
       data.gender = (genderCode === 1 || genderCode === 3) ? 'M' : 'F';
     } else {
-      // 앞 6자리만 있는 경우
       const onlyFront = rrnFull.match(/^(\d{6})/);
       if (onlyFront) data.birthDate = onlyFront[1];
     }
   }
+  // data.rrn 은 저장하지 않음 (신청서에 주민번호 전체 입력 불필요)
 
   // 연락처: 010-xxxx-xxxx 패턴만
   const phoneRaw = getSafe(/■\s*명의자연락처[^:]*:\s*([^\n]*)/);
@@ -1730,7 +1727,12 @@ function parseMemo(text) {
       // 카드 자동이체
       data.bank         = bankM ? bankM[1] : '';
       data.account      = cardNumM[1];
-      data.cardExp      = cardExpM ? cardExpM[1] : '';
+      if (cardExpM) {
+        const [mm, yy] = cardExpM[1].split('/');
+        data.cardExp = yy + '년' + mm + '월';
+      } else {
+        data.cardExp = '';
+      }
       data.accountHolder = holder;
       data.payType      = 'card';
     } else {
