@@ -531,8 +531,8 @@
         <div class="field-group">
           <label class="field-label">캡처 이미지 (여러 장 동시 가능)</label>
           <div class="ocr-dropzone" id="ocrDropzone">
-            <p>📷 이미지를 드래그하거나 클릭</p>
-            <p class="hint">고객정보, 납부정보, 가입상품 캡처 화면</p>
+            <p>📷 드래그 · 클릭 · <strong>Ctrl+V 붙여넣기</strong></p>
+            <p class="hint">여러 장 올린 후 OCR 실행 버튼 클릭</p>
             <input type="file" id="ocrFileInput" accept="image/*" multiple style="display:none">
           </div>
           <div class="ocr-images" id="ocrImages"></div>
@@ -2021,6 +2021,17 @@ ocrDropzone.addEventListener('dragover', e => { e.preventDefault(); ocrDropzone.
 ocrDropzone.addEventListener('dragleave', () => ocrDropzone.classList.remove('dragover'));
 ocrDropzone.addEventListener('drop', e => { e.preventDefault(); ocrDropzone.classList.remove('dragover'); handleOcrFiles(Array.from(e.dataTransfer.files)); });
 ocrFileInput.addEventListener('change', e => handleOcrFiles(Array.from(e.target.files)));
+
+// Ctrl+V 붙여넣기로 이미지 추가
+document.addEventListener('paste', (e) => {
+  const panel = document.querySelector('.tab-panel[data-panel="ocr"]');
+  if (!panel || !panel.classList.contains('active')) return;
+  const items = Array.from(e.clipboardData.items).filter(i => i.type.startsWith('image/'));
+  if (items.length === 0) return;
+  const files = items.map(i => i.getAsFile()).filter(Boolean);
+  handleOcrFiles(files);
+  showToast(`📋 이미지 ${files.length}장 붙여넣기됨`);
+});
 
 function handleOcrFiles(files) {
   const imgs = files.filter(f => f.type.startsWith('image/'));
