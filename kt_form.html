@@ -113,6 +113,12 @@
     transform: translateY(-50%);
   }
   .overlay-item:hover { border-color: #e60012; background: rgba(230,0,18,0.05); }
+  .overlay-item.auto-fill { background: rgba(255, 245, 150, 0.75); }
+  .overlay-item.auto-fill:hover { background: rgba(255, 235, 100, 0.85); }
+  @media print {
+    .overlay-item.auto-fill { background: transparent !important; }
+    .overlay-item { border: none !important; background: transparent !important; }
+  }
   .overlay-item.selected { border-color: #e60012; border-style: solid; background: rgba(230,0,18,0.08); }
   .overlay-item.signature { font-family: 'Nanum Pen Script', cursive; font-size: 28px; color: #000; line-height: 1; }
   .overlay-item.signature.font-gaegu { font-family: 'Gaegu', cursive; }
@@ -1311,6 +1317,10 @@ function createOverlayElement(item) {
   // 줄바꿈 보존: <br>로 변환해서 표시
   el.innerHTML = textToHtml(item.text);
   el.dataset.itemId = item.id;
+  // 파싱 자동입력 텍스트: 연한 노란색 배경
+  if (item.id && item.id.startsWith('auto_') && item.kind === 'text') {
+    el.classList.add('auto-fill');
+  }
 
   const del = document.createElement('span');
   del.className = 'del-btn';
@@ -1831,7 +1841,7 @@ function applyDataToPages() {
       if (coord.text) value = coord.text;
       else if (state.data[field]) value = state.data[field];
       if (!value) continue;
-      if (field.startsWith('internet_') || field.startsWith('tv_') || field.startsWith('wifi_') || field.startsWith('contract_')) {
+      if (field.startsWith('internet_') || field.startsWith('tv_') || field.startsWith('wifi_') || field.startsWith('contract_') || field.startsWith('gender_')) {
         if (!shouldCheck(field, state.data)) continue;
       }
       const overlay = {
