@@ -1734,39 +1734,42 @@ function parseMemo(text) {
   // ── 자동이체 파싱 ──
   const autoPay = getSafe(/■\s*자동이체[^:]*:\s*([^\n]*)/);
   if (autoPay) {
-    const cardNumM = autoPay.match(/([\d]{3,4}[-\d]{5,20}[\d]{3,4})/);
-    const cardExpM = autoPay.match(/(\d{2}\/\d{2})/);
-    const bankM    = autoPay.match(/^([^\s]+)/);
-    // 예금주: 마지막 단어가 한글 이름이면 사용, '본인'이거나 없으면 고객명
-    const holderM  = autoPay.match(/([가-힣]{2,5})\s*$/);
-    const holderRaw = holderM ? holderM[1] : '';
-    const holder   = (!holderRaw || holderRaw === '본인') ? data.name : holderRaw;
+    const cardNumM  = autoPay.match(/([\d]{3,4}[-\d]{5,20}[\d]{3,4})/);
+    const cardExpM  = autoPay.match(/(\d{2})\/(\d{2})/);
+    const bankM     = autoPay.match(/^([^\s]+)/);
+    // 이름+주민번호 패턴: "장덕수 881201-1245785"
+    const payRrnM   = autoPay.match(/([가-힣]{2,5})\s+(\d{6})[-\s]\d{7}/);
+    // 주민번호 없으면 마지막 한글 이름
+    const holderEndM = autoPay.match(/([가-힣]{2,5})\s*$/);
+    let holderRaw = '', holderBirth = '';
+    if (payRrnM) {
+      holderRaw   = payRrnM[1];
+      holderBirth = payRrnM[2];
+    } else if (holderEndM) {
+      holderRaw = holderEndM[1];
+    }
+    const holder = (!holderRaw || holderRaw === '본인') ? data.name : holderRaw;
+    data.accountHolder = holder;
+    data.accountRrn    = holderBirth || (holder === data.name ? (data.birthDate || '') : '');
 
     if (cardNumM) {
-      // 카드 자동이체
-      data.bank         = bankM ? bankM[1] : '';
-      data.account      = cardNumM[1];
-      if (cardExpM) {
-        const [mm, yy] = cardExpM[1].split('/');
-        data.cardExp = yy + '년' + mm + '월';
-      } else {
-        data.cardExp = '';
-      }
-      data.accountHolder = holder;
-      data.payType      = 'card';
+      data.bank    = bankM ? bankM[1] : '';
+      data.account = cardNumM[1];
+      data.cardExp = cardExpM ? (cardExpM[2] + '년' + cardExpM[1] + '월') : '';
+      data.payType = 'card';
     } else {
-      // 계좌 자동이체
       const acM = autoPay.match(/^(\S+)\s+(\S+)/);
       if (acM) {
-        data.bank         = acM[1];
-        data.account      = acM[2];
-        data.accountHolder = holder;
-        data.payType      = 'account';
+        data.bank    = acM[1];
+        data.account = acM[2];
+        data.payType = 'account';
       }
+    }
+    if (data.bank && data.account) {
+      data.bankAccount = data.bank + ' ' + data.account;
     }
   }
 
-  // ── 사은계좌 파싱 ──
   const giftAcc = getSafe(/★\s*사은계좌[^:]*:\s*([^\n]*)/);
   if (giftAcc) {
     if (giftAcc.includes('/')) {
