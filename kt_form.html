@@ -62,9 +62,6 @@
   .btn-primary { background: #e60012; color: white; }
   .btn-primary:hover { background: #c4000f; }
   .btn-secondary { background: #3a3a3c; color: white; }
-  #addHolderSigBtn { background: #1c1c1e; border: 2px solid #e60012; color: white; border-radius: 8px; }
-  #addHolderSigBtn:hover { background: rgba(230,0,18,0.15); }
-  #addHolderSigBtn:disabled { opacity: 0.4; }
   .btn-secondary:hover { background: #4a4a4c; }
   .btn-ghost { background: transparent; color: #ccc; border: 1px solid #444; }
   .btn-ghost:hover { background: #2a2a2a; color: white; }
@@ -116,15 +113,6 @@
     transform: translateY(-50%);
   }
   .overlay-item:hover { border-color: #e60012; background: rgba(230,0,18,0.05); }
-  .overlay-item.auto-fill,
-  .overlay-item.checkmark.auto-fill { background: rgba(255, 245, 150, 0.75) !important; }
-  .overlay-item.auto-fill:hover,
-  .overlay-item.checkmark.auto-fill:hover { background: rgba(255, 235, 100, 0.9) !important; }
-  @media print {
-    .overlay-item.auto-fill,
-    .overlay-item.checkmark.auto-fill { background: transparent !important; }
-    .overlay-item { border: none !important; background: transparent !important; }
-  }
   .overlay-item.selected { border-color: #e60012; border-style: solid; background: rgba(230,0,18,0.08); }
   .overlay-item.signature { font-family: 'Nanum Pen Script', cursive; font-size: 28px; color: #000; line-height: 1; }
   .overlay-item.signature.font-gaegu { font-family: 'Gaegu', cursive; }
@@ -135,7 +123,7 @@
     background: #e60012; color: white; border: 1px solid white; border-radius: 50%;
     font-size: 11px; line-height: 16px; text-align: center; cursor: pointer; display: none;
   }
-  .overlay-item.selected .del-btn { display: block; }
+  .overlay-item.selected .del-btn, .overlay-item:hover .del-btn { display: block; }
 
   /* 리사이즈 핸들 */
   .overlay-item .resize-handle {
@@ -487,18 +475,13 @@
           <input type="text" id="sigName" placeholder="예: 홍길동">
         </div>
 
-        <div style="display:flex; gap:8px; align-items:stretch;">
-          <label class="sig-all-row" id="sigAllRow" style="flex:1; margin:0;">
-            <input type="checkbox" id="sigAllCheckbox">
-            <div class="text">
-              <div class="label-main">서명 전체 적용</div>
-              <div class="label-sub">지정된 모든 서명란에 자동 입력</div>
-            </div>
-          </label>
-          <button class="btn btn-secondary" id="addHolderSigBtn" disabled
-            title="예금주가 고객명과 다를 때 사용"
-            style="flex-shrink:0; font-size:12px; padding:8px 12px;">예금주<br>서명</button>
-        </div>
+        <label class="sig-all-row" id="sigAllRow">
+          <input type="checkbox" id="sigAllCheckbox">
+          <div class="text">
+            <div class="label-main">서명 전체 적용</div>
+            <div class="label-sub">지정된 모든 서명란에 자동 입력</div>
+          </div>
+        </label>
 
         <div class="field-group">
           <label class="field-label">필기체 폰트</label>
@@ -509,10 +492,9 @@
           </select>
           <div class="signature-preview" id="sigPreview">홍길동</div>
         </div>
-        <!-- addSigBtn 숨김 처리 (기능은 유지) -->
-        <button id="addSigBtn" style="display:none" disabled></button>
+
         <p style="margin-top:8px; font-size:11px; color:#999; text-align:center; line-height:1.6;">
-          💡 <strong>더블클릭</strong> 텍스트 입력 · <strong>Ctrl+클릭</strong> 서명 · <strong>Shift+클릭</strong> V체크<br>
+          💡 <strong>클릭</strong> 텍스트 입력 · <strong>Ctrl+클릭</strong> 서명 · <strong>Shift+클릭</strong> V체크<br>
           <strong>더블클릭</strong> 텍스트 편집 · <strong>Enter</strong> 줄바꿈 · <strong>방향키</strong> 미세이동<br>
           <strong>Ctrl+Z</strong> 되돌리기 · <strong>파란 핸들 드래그</strong> 크기조절
         </p>
@@ -680,11 +662,11 @@ function detectPdfType(filename) {
 
 const SIG_COORDS = {
   service_p1: [
-    { x: 76.6, y: 93.6, fontSize: 22 },
-    { x: 76.6, y: 93.6, fontSize: 22 },
-    { x: 71.0, y: 74.9, fontSize: 22, useAccountHolder: true },  // 예금주/카드주 서명칸
+    { x: 75.4, y: 13.1, fontSize: 22 },
     { x: 75.7, y: 16.9, fontSize: 22 },
     { x: 79.3, y: 45.0, fontSize: 20 },
+    { x: 76.6, y: 93.6, fontSize: 22 },
+    { x: 71.0, y: 74.9, fontSize: 22 },
   ],
   wired_p1: [
     { x: 79.0, y: 16.8, fontSize: 16 },
@@ -1145,8 +1127,6 @@ async function handlePdfFiles(files, skipToast = false) {
   updateRemoveBtn();
   $('printBtn').disabled = state.pages.length === 0;
   $('saveJpgBtn').disabled = state.pages.length === 0;
-  $('addSigBtn').disabled = state.pages.length === 0;
-  $('addHolderSigBtn').disabled = state.pages.length === 0;
   if (!skipToast) showToast('PDF 로드 완료!');
 
   if ($('sigAllCheckbox').checked) {
@@ -1288,7 +1268,6 @@ $('removePdfBtn').onclick = () => {
   const hasPages = state.pages.length > 0;
   $('printBtn').disabled = !hasPages;
   $('saveJpgBtn').disabled = !hasPages;
-  $('addSigBtn').disabled = !hasPages;
   showToast(hasPages ? '페이지 제거 완료' : '모든 PDF가 제거되었습니다');
 };
 
@@ -1332,10 +1311,6 @@ function createOverlayElement(item) {
   // 줄바꿈 보존: <br>로 변환해서 표시
   el.innerHTML = textToHtml(item.text);
   el.dataset.itemId = item.id;
-  // 파싱 자동입력 텍스트/체크: 연한 노란색 배경
-  if (item.id && item.id.startsWith('auto_') && (item.kind === 'text' || item.kind === 'check')) {
-    el.classList.add('auto-fill');
-  }
 
   const del = document.createElement('span');
   del.className = 'del-btn';
@@ -1555,10 +1530,10 @@ function updateSelectedItem(props) {
 }
 
 /* =========================================
-   더블클릭으로 텍스트 박스 생성 (왼쪽 정렬 기준)
+   클릭으로 텍스트 박스 생성 (왼쪽 정렬 기준)
 ========================================= */
-// 더블클릭 → 텍스트 박스 생성. 단 modifier키나 오버레이 위 클릭은 제외
-pdfStage.addEventListener('dblclick', (e) => {
+// 일반 클릭 → 텍스트 박스 생성. 단 modifier키나 오버레이 위 클릭은 제외
+pdfStage.addEventListener('click', (e) => {
   // modifier 키 클릭은 다른 핸들러가 처리
   if (e.ctrlKey || e.shiftKey || e.metaKey || e.altKey) return;
   // 오버레이/버튼 위 클릭이면 무시
@@ -1657,180 +1632,64 @@ pdfStage.addEventListener('click', (e) => {
 });
 
 const FIELD_COORDS = {
-  // 서비스신청서만 파싱 적용
   service_p1: {
-    // ── 고객정보 ──
-    name:          { x: 9.5, y: 9.0,  fontSize: 12 },  // 고객명
-    birthDate:     { x: 41,  y: 9.0,  fontSize: 11 },  // 생년월일
-    gender_M:      { x: 61.5, y: 8.5, fontSize: 12, text: 'V' }, // 남 체크
-    gender_F:      { x: 65.5, y: 8.5, fontSize: 12, text: 'V' }, // 여 체크
-    phone:         { x: 73,  y: 9.0,  fontSize: 11 },  // 핸드폰
-    address:       { x: 9.5, y: 14.5, fontSize: 10 },  // 주소 (자동 줄바꿈)
-    // ── 요금납부 ──
-    accountHolder: { x: 9.5, y: 52.5, fontSize: 11 },  // 예금주/카드주
-    accountRrn:    { x: 79,  y: 51.5, fontSize: 11 },  // 예금주 생년월일 (우측)
-    bankAccount:   { x: 9.5, y: 57.5, fontSize: 10 },  // 은행+계좌번호
-    cardExp:       { x: 79,  y: 57.5, fontSize: 10 },  // 카드유효기간
+    name:{x:18,y:56,fontSize:13}, rrn:{x:18,y:60,fontSize:13}, phone:{x:50,y:56,fontSize:13},
+    address:{x:18,y:64,fontSize:12}, email:{x:50,y:64,fontSize:12},
+    bank:{x:18,y:78,fontSize:12}, account:{x:30,y:78,fontSize:12},
+    accountHolder:{x:60,y:78,fontSize:12}, accountRrn:{x:75,y:78,fontSize:12},
+    internet:{x:30,y:30,fontSize:12}, tv:{x:30,y:22,fontSize:12},
+    combo:{x:50,y:70,fontSize:12}, installDate:{x:60,y:88,fontSize:12},
+    installFee:{x:75,y:88,fontSize:12}, monthlyFee:{x:85,y:88,fontSize:12},
   },
-  wired_p1:   {},
-  consent_p1: {},
-  consent_p2: {},
+  wired_p1: {
+    name:{x:35,y:88,fontSize:13}, rrn:{x:55,y:88,fontSize:13}, phone:{x:75,y:88,fontSize:13},
+    address:{x:35,y:92,fontSize:12}, email:{x:65,y:92,fontSize:12},
+    internet_500m:{x:85,y:50,fontSize:16,text:'V'}, tv_modeunji:{x:25,y:18,fontSize:16,text:'V'},
+    wifi_giga:{x:50,y:58,fontSize:16,text:'V'}, contract_3y:{x:25,y:65,fontSize:16,text:'V'},
+  },
+  consent_p1: { name:{x:30,y:85,fontSize:13}, rrn:{x:50,y:85,fontSize:13}, phone:{x:70,y:85,fontSize:13} },
+  consent_p2: { name:{x:30,y:25,fontSize:13}, rrn:{x:50,y:25,fontSize:13} },
 };
 
 function parseMemo(text) {
   const data = {};
-
-  // 빈값 안전 추출
-  const getSafe = (re) => {
-    const m = text.match(re);
-    const val = m ? m[1].trim() : '';
-    return /^[\s\u3000]*$/.test(val) ? '' : val;
-  };
-
-  // ── 기본 정보 ──
-  data.name = (function(t){ const m = t.match(/■\s*고객명[^■\n]*?[)：:]\s*([가-힣a-zA-Z][가-힣a-zA-Z\s··]{0,15})/); return m ? m[1].trim() : ''; })(text);
-
-  // 식별번호 → 생년월일(앞6자리) + 성별만 추출, 전체 주민번호는 저장 안 함
-  const rrnFull = getSafe(/■\s*식별번호[^:]*:\s*([^\n]*)/);
-  if (rrnFull) {
-    const rrnMatch = rrnFull.match(/(\d{6})[\-\s]?(\d)(\d{6})/);
-    if (rrnMatch) {
-      data.birthDate = rrnMatch[1];  // 앞 6자리만
-      const genderCode = parseInt(rrnMatch[2]);
-      // 1,3=남(내국인) / 2,4=여(내국인) / 5,7=남(외국인) / 6,8=여(외국인)
-      if ([1,3,5,7].includes(genderCode)) {
-        data.gender = 'M';
-      } else if ([2,4,6,8].includes(genderCode)) {
-        data.gender = 'F';
-      }
-      // 외국인 여부
-      data.isForeigner = [5,6,7,8].includes(genderCode);
-    } else {
-      const onlyFront = rrnFull.match(/^(\d{6})/);
-      if (onlyFront) data.birthDate = onlyFront[1];
-    }
-  }
-  // data.rrn 은 저장하지 않음 (신청서에 주민번호 전체 입력 불필요)
-
-  // 연락처: 010-xxxx-xxxx 패턴만
-  const phoneRaw = getSafe(/■\s*명의자연락처[^:]*:\s*([^\n]*)/);
-  const phoneMatch = phoneRaw.match(/(\d{2,3}-\d{3,4}-\d{4})/);
-  data.phone = phoneMatch ? phoneMatch[1] : '';
-
-  // 설치주소: 하나의 텍스트로, 길면 \n 넣어서 두 줄로 표시
-  const addrFull = getSafe(/■\s*설치주소[^:■]*[:\s]\s*([^\n■]+)/);
-  if (addrFull && addrFull.length > 24) {
-    // 괄호 앞 공백 기준으로 줄바꿈 삽입 (자연스러운 위치)
-    const parenIdx = addrFull.indexOf('(');
-    const spaceIdx = parenIdx > 0 ? parenIdx - 1 : addrFull.indexOf(' ', Math.floor(addrFull.length * 0.45));
-    if (spaceIdx > 0) {
-      data.address = addrFull.substring(0, spaceIdx).trim() + '\n' + addrFull.substring(spaceIdx).trim();
-    } else {
-      data.address = addrFull;
-    }
-  } else {
-    data.address = addrFull;
-  }
-  data.address2 = ''; // 더 이상 사용 안 함
-
-  // 청구매체: 이메일만
-  const emailRaw = getSafe(/■\s*청구매체[^:]*:\s*([^\n]*)/);
-  data.email = (emailRaw && emailRaw.includes('@')) ? emailRaw : '';
-
-  // ── 자동이체 파싱 ──
-  const autoPay = getSafe(/■\s*자동이체[^:]*:\s*([^\n]*)/);
-  if (autoPay) {
-    const cardNumM  = autoPay.match(/([\d]{3,4}[-\d]{5,20}[\d]{3,4})/);
-    const cardExpM  = autoPay.match(/(\d{2})\/(\d{2})/);
-    const bankM     = autoPay.match(/^([^\s]+)/);
-    // 이름+주민번호 패턴: "장덕수 881201-1245785"
-    const payRrnM   = autoPay.match(/([가-힣]{2,5})\s+(\d{6})[-\s]\d{7}/);
-    // 주민번호 없으면 마지막 한글 이름
-    const holderEndM = autoPay.match(/([가-힣]{2,5})\s*$/);
-    let holderRaw = '', holderBirth = '';
-    if (payRrnM) {
-      holderRaw   = payRrnM[1];
-      holderBirth = payRrnM[2];
-    } else if (holderEndM) {
-      holderRaw = holderEndM[1];
-    }
-    const holder = (!holderRaw || holderRaw === '본인') ? data.name : holderRaw;
-    data.accountHolder = holder;
-    data.accountRrn    = holderBirth || (holder === data.name ? (data.birthDate || '') : '');
-
-    if (cardNumM) {
-      data.bank    = bankM ? bankM[1] : '';
-      data.account = cardNumM[1];
-      data.cardExp = cardExpM ? (cardExpM[2] + '년' + cardExpM[1] + '월') : '';
-      data.payType = 'card';
-    } else {
-      const acM = autoPay.match(/^(\S+)\s+(\S+)/);
-      if (acM) {
-        data.bank    = acM[1];
-        data.account = acM[2];
-        data.payType = 'account';
-      }
-    }
-    if (data.bank && data.account) {
-      data.bankAccount = data.bank + ' ' + data.account;
-    }
-  }
-
-  const giftAcc = getSafe(/★\s*사은계좌[^:]*:\s*([^\n]*)/);
+  const get = (re) => { const m = text.match(re); return m ? m[1].trim() : ''; };
+  data.name = get(/■\s*고객명[^:]*:\s*([^\n]+)/);
+  data.rrn = get(/■\s*식별번호[^:]*:\s*([^\n]+)/);
+  const phoneRaw = get(/■\s*명의자연락처[^:]*:\s*([^\n]+)/);
+  const phoneMatch = phoneRaw.match(/(\d{2,3}-?\d{3,4}-?\d{4})/);
+  data.phone = phoneMatch ? phoneMatch[1] : phoneRaw;
+  data.address = get(/■\s*설치주소[^:]*:\s*([^\n]+)/);
+  data.email = get(/■\s*청구매체[^:]*:\s*([^\n]+)/);
+  const autoPay = get(/■\s*자동이체[^:]*:\s*([^\n]+)/);
+  const apMatch = autoPay.match(/^(\S+)\s+(\S+)/);
+  if (apMatch) { data.bank = apMatch[1]; data.account = apMatch[2]; }
+  const giftAcc = get(/★\s*사은계좌[^:]*:\s*([^\n]+)/);
   if (giftAcc) {
     if (giftAcc.includes('/')) {
       const parts = giftAcc.split('/').map(s => s.trim());
-      data.giftBank    = parts[0] || '';
-      data.giftAccount = parts[1] || '';
-      // 자동이체에서 이미 설정된 경우 덮지 않음
-      if (!data.accountHolder) {
-        const gh = parts[2] || '';
-        data.accountHolder = (!gh || gh === '본인') ? data.name : gh;
-      }
-      if (!data.accountRrn && parts[3]) {
-        data.accountRrn = parts[3].replace(/[^\d]/g,'').substring(0,6);
-      }
+      if (!data.bank && parts[0]) data.bank = parts[0];
+      if (!data.account && parts[1]) data.account = parts[1];
+      if (parts[2]) data.accountHolder = parts[2];
+      if (parts[3]) data.accountRrn = parts[3];
     } else {
-      const parts = giftAcc.trim().split(/\s+/);
-      data.giftBank    = parts[0] || '';
-      data.giftAccount = parts[1] || '';
-      if (!data.accountHolder) {
-        const gh = parts[2] || '';
-        data.accountHolder = (!gh || gh === '본인') ? data.name : gh;
-      }
+      const gm = giftAcc.match(/^(\S+)\s+(\S+)/);
+      if (gm && !data.bank) { data.bank = gm[1]; data.account = gm[2]; }
     }
   }
-  if (!data.accountHolder) data.accountHolder = data.name;
-  if (!data.accountRrn)    data.accountRrn    = data.birthDate || '';
-
-  // 은행+계좌 합쳐서 하나로 (겹침 방지)
-  if (data.bank && data.account) {
-    data.bankAccount = data.bank + ' ' + data.account;
-  }
-
-  // ── 상품 정보 ──
-  data.carrier     = getSafe(/□\s*가입통신사[^:]*:\s*([^\n]*)/);
-  data.internet    = getSafe(/□\s*인터넷상품명[^:]*:\s*([^\n]*)/);
-  data.tv          = getSafe(/□\s*TV\/?셋탑[^:]*:\s*([^\n]*)/);
-
-  // 결합: 빈칸 버그 방지
-  const comboRaw = getSafe(/□\s*결합[^:\n]*:\s*([^\n]*)/);
-  data.combo = /^[□\s]*$/.test(comboRaw) ? '' : comboRaw;
-
-  data.installDate = getSafe(/□\s*설치희망일[^:]*:\s*([^\n]*)/);
-  data.memoNote    = getSafe(/□\s*기타요청사항[^:]*:\s*([^\n]*)/);
-
-  // 설치비: 슬래시 앞 숫자만
-  const ifeeRaw = getSafe(/□\s*설치비[^:]*:\s*([^\n]*)/);
-  data.installFee = ((ifeeRaw.split('/')[0]).match(/(\d+)/) || ['',''])[1];
-
-  // 월요금: 슬래시 앞 숫자만
-  const mfeeRaw = getSafe(/□\s*월요금[^:\n]*[:\/]\s*([^\n]*)/);
-  data.monthlyFee = ((mfeeRaw.split('/')[0]).match(/(\d+)/) || ['',''])[1];
-
+  if (!data.accountHolder && data.name) data.accountHolder = data.name;
+  if (!data.accountRrn && data.rrn) data.accountRrn = data.rrn;
+  data.carrier = get(/□\s*가입통신사[^:]*:\s*([^\n]+)/);
+  data.internet = get(/□\s*인터넷상품명[^:]*:\s*([^\n]+)/);
+  data.tv = get(/□\s*TV\/?셋탑[^:]*:\s*([^\n]+)/);
+  data.combo = get(/□\s*결합[^:]*:\s*([^\n]+)/);
+  data.installDate = get(/□\s*설치희망일[^:]*:\s*([^\n]+)/);
+  const ifee = get(/□\s*설치비[^:]*:\s*([^\n]+)/);
+  data.installFee = ifee.match(/(\d{1,3}(?:,?\d{3})*)/)?.[1] || ifee;
+  const mfee = get(/□\s*월요금[^:]*[:\/]\s*([^\n]+)/);
+  data.monthlyFee = mfee.match(/(\d{1,3}(?:,?\d{3})*)/)?.[1] || mfee;
   return data;
 }
-
 
 function parseOcrText(text) {
   const data = {};
@@ -1869,7 +1728,7 @@ function applyDataToPages() {
       if (coord.text) value = coord.text;
       else if (state.data[field]) value = state.data[field];
       if (!value) continue;
-      if (field.startsWith('internet_') || field.startsWith('tv_') || field.startsWith('wifi_') || field.startsWith('contract_') || field.startsWith('gender_')) {
+      if (field.startsWith('internet_') || field.startsWith('tv_') || field.startsWith('wifi_') || field.startsWith('contract_')) {
         if (!shouldCheck(field, state.data)) continue;
       }
       const overlay = {
@@ -1891,9 +1750,6 @@ function shouldCheck(field, data) {
   if (field === 'tv_modeunji') return /모든지/.test(data.tv||'');
   if (field === 'wifi_giga') return /WIFI|와이파이|WiFi/.test(data.internet||'') || /WIFI|와이파이|WiFi/.test(data.wifi||'');
   if (field === 'contract_3y') return /3년/.test(data.contract||'') || /3년/.test(data.combo||'');
-  // 성별 체크 (주민번호 뒷자리 첫번째: 1→남, 2→여, 3→남, 4→여)
-  if (field === 'gender_M') return data.gender === 'M';
-  if (field === 'gender_F') return data.gender === 'F';
   return false;
 }
 
@@ -2069,14 +1925,10 @@ function applySignatureToAll(name) {
     const sigList = SIG_COORDS[pageKey];
     if (!sigList || sigList.length === 0) continue;
     sigList.forEach((coord, idx) => {
-      // useAccountHolder: true 칸은 예금주 이름, 나머지는 서명 이름
-      const sigText = (coord.useAccountHolder && state.data.accountHolder)
-        ? state.data.accountHolder
-        : name;
       const overlay = {
         id: 'sigall_' + page.id + '_' + idx + '_' + Date.now(),
         x: coord.x, y: coord.y, fontSize: coord.fontSize || 22,
-        text: sigText, kind: 'signature', sigFont: sigFont, manual: true, sigAll: true,
+        text: name, kind: 'signature', sigFont: sigFont, manual: true, sigAll: true,
       };
       state.overlays[page.id].push(overlay);
       addedCount++;
@@ -2137,32 +1989,7 @@ function updateSigPreview() {
   else preview.style.fontFamily = "'Nanum Pen Script', cursive";
 }
 
-$('addHolderSigBtn').onclick = () => {
-  const holderName = state.data.accountHolder || '';
-  if (!holderName) { showToast('파싱된 예금주 정보가 없습니다'); return; }
-  if (state.pages.length === 0) return;
-  const page = state.pages[state.currentIdx];
-  const overlay = {
-    id: 'sig_holder_' + Date.now(),
-    x: 70, y: 50, fontSize: 22,
-    text: holderName, kind: 'signature',
-    sigFont: $('sigFont').value, manual: true,
-  };
-  state.overlays[page.id].push(overlay);
-  renderOverlays();
-  selectOverlay(overlay.id);
-  showToast(`예금주 "${holderName}" 서명 추가됨`);
-};
 
-$('addSigBtn').onclick = () => {
-  const name = $('sigName').value.trim() || state.data.name || '';
-  if(!name){showToast('서명할 이름을 입력하세요');return;}
-  if(state.pages.length===0)return;
-  const page=state.pages[state.currentIdx];
-  const overlay = { id:'sig_'+Date.now()+'_'+Math.random().toString(36).slice(2,7), x:70, y:50, fontSize:22, text:name, kind:'signature', sigFont:$('sigFont').value, manual:true };
-  state.overlays[page.id].push(overlay);
-  renderOverlays(); selectOverlay(overlay.id);
-};
 
 $('printBtn').onclick = async () => { await preparePrintArea(); window.print(); };
 async function preparePrintArea() {
@@ -2342,12 +2169,7 @@ document.addEventListener('keydown', (e) => {
     }
   }
 
-  if (e.key === 'Delete' && state.selectedItem) {
-    // 편집 중(contenteditable)이면 무시
-    const active = document.activeElement;
-    if (active && (active.contentEditable === 'true' || active.tagName === 'INPUT' || active.tagName === 'TEXTAREA')) return;
-    pushUndo(); deleteOverlay(state.selectedItem);
-  }
+  if (e.key === 'Delete' && state.selectedItem) { pushUndo(); deleteOverlay(state.selectedItem); }
   if (e.key === 'Escape') { deselectOverlay(); $('saveModal').classList.remove('show'); $('slotSaveModal').classList.remove('show'); $('slotLoadModal').classList.remove('show'); }
 });
 
