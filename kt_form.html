@@ -1649,6 +1649,7 @@ pdfStage.addEventListener('click', (e) => {
 });
 
 const FIELD_COORDS = {
+  // 서비스신청서만 파싱 적용
   service_p1: {
     // ── 고객정보 ──
     name:          { x: 9.5, y: 9.0,  fontSize: 12 },  // 고객명
@@ -1665,14 +1666,10 @@ const FIELD_COORDS = {
     account:       { x: 28,  y: 57.5, fontSize: 10 },  // 계좌/카드번호
     cardExp:       { x: 79,  y: 57.5, fontSize: 10 },  // 카드유효기간
   },
-  wired_p1: {
-    name:{x:35,y:88,fontSize:13}, rrn:{x:55,y:88,fontSize:13}, phone:{x:75,y:88,fontSize:13},
-    address:{x:35,y:92,fontSize:12}, email:{x:65,y:92,fontSize:12},
-    internet_500m:{x:85,y:50,fontSize:16,text:'V'}, tv_modeunji:{x:25,y:18,fontSize:16,text:'V'},
-    wifi_giga:{x:50,y:58,fontSize:16,text:'V'}, contract_3y:{x:25,y:65,fontSize:16,text:'V'},
-  },
-  consent_p1: { name:{x:30,y:85,fontSize:13}, rrn:{x:50,y:85,fontSize:13}, phone:{x:70,y:85,fontSize:13} },
-  consent_p2: { name:{x:30,y:25,fontSize:13}, rrn:{x:50,y:25,fontSize:13} },
+  // 유선신청서, 동의서 — 파싱 없음 (서명만 전체적용)
+  wired_p1:   {},
+  consent_p1: {},
+  consent_p2: {},
 };
 
 function parseMemo(text) {
