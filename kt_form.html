@@ -1913,16 +1913,33 @@ function parseOcrText(text) {
     if (accM2) data.account = accM2[1];
   }
 
-  // 예금주
-  const holderM = joined.match(/예\s*금\s*주\s*([가-힣]{2,5})/);
+  // 예금주 - 오인식(매금주, 에금주 등) 보정
+  const fixedHolder = joined.replace(/[매에메]금주/g,'예금주').replace(/메금주/g,'예금주');
+  const holderM = fixedHolder.match(/예금주\s*([가-힣]{2,5})/);
   if (holderM) data.accountHolder = holderM[1];
 
-  // 예금주 생년월일 (예금주 뒤 주민번호)
-  const holderRrnM = joined.match(/예\s*금\s*주\s*[가-힣]{2,5}\s*주민번호\s*(\d{6})/);
+  // 예금주 생년월일: 예금주 뒤 주민번호 6자리
+  const holderRrnM = fixedHolder.match(/예금주\s*[가-힣]{2,5}\s*주민번호\s*(\d{6})/) ||
+                     fixedHolder.match(/예금주[^\d]*(\d{6})\s*[-|]/);
   if (holderRrnM) data.accountRrn = holderRrnM[1];
   else if (data.accountHolder && data.accountHolder === data.name && data.birthDate) {
     data.accountRrn = data.birthDate;
   }
+
+  // 주민번호 앞자리 오인식 보정 (ea1215 → 661215 등)
+  // 숫자처럼 생긴 영문자 보정
+  const fixRrn = (s) => s.replace(/[eE]/g,'6').replace(/[aA]/g,'4').replace(/[oO]/g,'0')
+                         .replace(/[lI]/g,'1').replace(/[sS]/g,'5').replace(/[bB]/g,'8');
+  if (!data.birthDate) {
+    const rrnRaw = joined.match(/주민번호[^\d]*([a-zA-Z0-9]{6})\s*[\[\|]/);
+    if (rrnRaw) {
+      const fixed = fixRrn(rrnRaw[1]);
+      if (/^\d{6}$/.test(fixed)) data.birthDate = fixed;
+    }
+  }
+
+  // 고객명 - 예금주랑 같으면 고객명으로도 설정
+  if (!data.name && data.accountHolder) data.name = data.accountHolder;
 
   if (!data.accountHolder && data.name) data.accountHolder = data.name;
   if (!data.accountRrn && data.birthDate) data.accountRrn = data.birthDate;
