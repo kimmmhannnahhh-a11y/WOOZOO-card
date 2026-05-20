@@ -1317,8 +1317,8 @@ function createOverlayElement(item) {
   // 줄바꿈 보존: <br>로 변환해서 표시
   el.innerHTML = textToHtml(item.text);
   el.dataset.itemId = item.id;
-  // 파싱 자동입력 텍스트: 연한 노란색 배경
-  if (item.id && item.id.startsWith('auto_') && item.kind === 'text') {
+  // 파싱 자동입력 텍스트/체크: 연한 노란색 배경
+  if (item.id && item.id.startsWith('auto_') && (item.kind === 'text' || item.kind === 'check')) {
     el.classList.add('auto-fill');
   }
 
@@ -1643,20 +1643,20 @@ pdfStage.addEventListener('click', (e) => {
 
 const FIELD_COORDS = {
   service_p1: {
-    // 고객정보
-    name:          { x: 9,  y: 13.5, fontSize: 12 },  // 고객명
-    birthDate:     { x: 57, y: 11.5, fontSize: 11 },  // 생년월일 (앞6자리)
-    gender_M:      { x: 72, y: 11.2, fontSize: 13, text: 'V' }, // 남 체크 (조건부)
-    gender_F:      { x: 76, y: 11.2, fontSize: 13, text: 'V' }, // 여 체크 (조건부)
-    phone:         { x: 80, y: 11.5, fontSize: 11 },  // 핸드폰
-    address:       { x: 9,  y: 20.5, fontSize: 11 },  // 주소 줄1
-    address2:      { x: 9,  y: 24.5, fontSize: 11 },  // 주소 줄2
-    // 요금납부
-    bank:          { x: 9,  y: 60.5, fontSize: 11 },  // 은행/카드사
-    account:       { x: 28, y: 60.5, fontSize: 11 },  // 계좌/카드번호
-    accountHolder: { x: 9,  y: 55.5, fontSize: 11 },  // 예금주
-    cardExp:       { x: 72, y: 63.5, fontSize: 10 },  // 카드유효기간
-    accountRrn:    { x: 57, y: 55.5, fontSize: 11 },  // 예금주 생년월일
+    // ── 고객정보 ──
+    name:          { x: 9.5, y: 9.0,  fontSize: 12 },  // 고객명
+    birthDate:     { x: 41,  y: 9.0,  fontSize: 11 },  // 생년월일
+    gender_M:      { x: 61,  y: 8.8,  fontSize: 12, text: 'V' }, // 남 체크
+    gender_F:      { x: 65,  y: 8.8,  fontSize: 12, text: 'V' }, // 여 체크
+    phone:         { x: 73,  y: 9.0,  fontSize: 11 },  // 핸드폰
+    address:       { x: 9.5, y: 14.5, fontSize: 10 },  // 주소 줄1
+    address2:      { x: 9.5, y: 17.5, fontSize: 10 },  // 주소 줄2
+    // ── 요금납부 ──
+    accountHolder: { x: 9.5, y: 52.5, fontSize: 11 },  // 예금주/카드주
+    accountRrn:    { x: 50,  y: 52.5, fontSize: 11 },  // 예금주 생년월일
+    bank:          { x: 9.5, y: 57.5, fontSize: 10 },  // 은행(카드사)명
+    account:       { x: 28,  y: 57.5, fontSize: 10 },  // 계좌/카드번호
+    cardExp:       { x: 79,  y: 57.5, fontSize: 10 },  // 카드유효기간
   },
   wired_p1: {
     name:{x:35,y:88,fontSize:13}, rrn:{x:55,y:88,fontSize:13}, phone:{x:75,y:88,fontSize:13},
@@ -1688,6 +1688,7 @@ function parseMemo(text) {
     if (rrnMatch) {
       data.birthDate = rrnMatch[1];  // 앞 6자리만
       const genderCode = parseInt(rrnMatch[2]);
+      // 1,3=남성(M) / 2,4=여성(F)
       data.gender = (genderCode === 1 || genderCode === 3) ? 'M' : 'F';
     } else {
       const onlyFront = rrnFull.match(/^(\d{6})/);
@@ -1863,7 +1864,7 @@ function shouldCheck(field, data) {
   if (field === 'tv_modeunji') return /모든지/.test(data.tv||'');
   if (field === 'wifi_giga') return /WIFI|와이파이|WiFi/.test(data.internet||'') || /WIFI|와이파이|WiFi/.test(data.wifi||'');
   if (field === 'contract_3y') return /3년/.test(data.contract||'') || /3년/.test(data.combo||'');
-  // 성별 체크
+  // 성별 체크 (주민번호 뒷자리 첫번째: 1→남, 2→여, 3→남, 4→여)
   if (field === 'gender_M') return data.gender === 'M';
   if (field === 'gender_F') return data.gender === 'F';
   return false;
