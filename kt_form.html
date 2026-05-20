@@ -1774,23 +1774,28 @@ function parseMemo(text) {
   if (giftAcc) {
     if (giftAcc.includes('/')) {
       const parts = giftAcc.split('/').map(s => s.trim());
-      data.giftBank      = parts[0] || '';
-      data.giftAccount   = parts[1] || '';
-      // 예금주: '본인'이면 고객명
-      const gh = parts[2] || '';
-      data.accountHolder = (!gh || gh === '본인') ? data.name : gh;
-      data.accountRrn    = parts[3] || data.rrn;
+      data.giftBank    = parts[0] || '';
+      data.giftAccount = parts[1] || '';
+      // 자동이체에서 이미 설정된 경우 덮지 않음
+      if (!data.accountHolder) {
+        const gh = parts[2] || '';
+        data.accountHolder = (!gh || gh === '본인') ? data.name : gh;
+      }
+      if (!data.accountRrn && parts[3]) {
+        data.accountRrn = parts[3].replace(/[^\d]/g,'').substring(0,6);
+      }
     } else {
       const parts = giftAcc.trim().split(/\s+/);
-      data.giftBank      = parts[0] || '';
-      data.giftAccount   = parts[1] || '';
-      const gh = parts[2] || '';
-      data.accountHolder = (!gh || gh === '본인') ? data.name : gh;
-      data.accountRrn    = data.rrn;
+      data.giftBank    = parts[0] || '';
+      data.giftAccount = parts[1] || '';
+      if (!data.accountHolder) {
+        const gh = parts[2] || '';
+        data.accountHolder = (!gh || gh === '본인') ? data.name : gh;
+      }
     }
   }
   if (!data.accountHolder) data.accountHolder = data.name;
-  if (!data.accountRrn)    data.accountRrn    = data.rrn;
+  if (!data.accountRrn)    data.accountRrn    = data.birthDate || '';
 
   // 은행+계좌 합쳐서 하나로 (겹침 방지)
   if (data.bank && data.account) {
