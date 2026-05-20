@@ -1654,12 +1654,12 @@ const FIELD_COORDS = {
     // ── 고객정보 ──
     name:          { x: 9.5, y: 9.0,  fontSize: 12 },  // 고객명
     birthDate:     { x: 41,  y: 9.0,  fontSize: 11 },  // 생년월일
-    gender_M:      { x: 62,  y: 8.6,  fontSize: 12, text: 'V' }, // 남 체크
-    gender_F:      { x: 66,  y: 8.6,  fontSize: 12, text: 'V' }, // 여 체크
+    gender_M:      { x: 61.5, y: 8.5, fontSize: 12, text: 'V' }, // 남 체크
+    gender_F:      { x: 65.5, y: 8.5, fontSize: 12, text: 'V' }, // 여 체크
     phone:         { x: 73,  y: 9.0,  fontSize: 11 },  // 핸드폰
     address:       { x: 9.5, y: 14.5, fontSize: 10 },  // 주소 줄1
-    address2:      { x: 9.5, y: 17.5, fontSize: 10 },  // 주소 줄2
-    // ── 요금납부 ──
+    address:       { x: 9.5, y: 14.5, fontSize: 10 },  // 주소 (자동 줄바꿈)
+    // address2 제거 — address 하나로 통합
     accountHolder: { x: 9.5, y: 52.5, fontSize: 11 },  // 예금주/카드주
     accountRrn:    { x: 50,  y: 52.5, fontSize: 11 },  // 예금주 생년월일
     bankAccount:   { x: 9.5, y: 57.5, fontSize: 10 },  // 은행+계좌번호 합쳐서
@@ -1682,7 +1682,7 @@ function parseMemo(text) {
   };
 
   // ── 기본 정보 ──
-  data.name = (text.match(/■\s*고객명(?:[^)■\n]*\))?\s*[:：]?\s*([가-힣a-zA-Z][가-힣a-zA-Z\s·]{0,15})/) || ['',''])[1].trim();
+  data.name = (function(t){ const m = t.match(/■\s*고객명[^■\n]*?[)：:]\s*([가-힣a-zA-Z][가-힣a-zA-Z\s··]{0,15})/); return m ? m[1].trim() : ''; })(text);
 
   // 식별번호 → 생년월일(앞6자리) + 성별만 추출, 전체 주민번호는 저장 안 함
   const rrnFull = getSafe(/■\s*식별번호[^:]*:\s*([^\n]*)/);
@@ -1711,22 +1711,21 @@ function parseMemo(text) {
   const phoneMatch = phoneRaw.match(/(\d{2,3}-\d{3,4}-\d{4})/);
   data.phone = phoneMatch ? phoneMatch[1] : '';
 
-  // 설치주소: 20자 초과 시 두 줄로 분리
-  const addrFull = getSafe(/■\s*설치주소[^:]*:\s*([^\n]*)/);
-  if (addrFull && addrFull.length > 22) {
-    // 공백 기준으로 앞부분(시/구/동)과 뒷부분(상세주소) 분리
-    const spaceIdx = addrFull.indexOf(' ', Math.floor(addrFull.length * 0.45));
+  // 설치주소: 하나의 텍스트로, 길면 \n 넣어서 두 줄로 표시
+  const addrFull = getSafe(/■\s*설치주소[^:■]*[:\s]\s*([^\n■]+)/);
+  if (addrFull && addrFull.length > 24) {
+    // 괄호 앞 공백 기준으로 줄바꿈 삽입 (자연스러운 위치)
+    const parenIdx = addrFull.indexOf('(');
+    const spaceIdx = parenIdx > 0 ? parenIdx - 1 : addrFull.indexOf(' ', Math.floor(addrFull.length * 0.45));
     if (spaceIdx > 0) {
-      data.address  = addrFull.substring(0, spaceIdx).trim();
-      data.address2 = addrFull.substring(spaceIdx).trim();
+      data.address = addrFull.substring(0, spaceIdx).trim() + '\n' + addrFull.substring(spaceIdx).trim();
     } else {
-      data.address  = addrFull;
-      data.address2 = '';
+      data.address = addrFull;
     }
   } else {
-    data.address  = addrFull;
-    data.address2 = '';
+    data.address = addrFull;
   }
+  data.address2 = ''; // 더 이상 사용 안 함
 
   // 청구매체: 이메일만
   const emailRaw = getSafe(/■\s*청구매체[^:]*:\s*([^\n]*)/);
