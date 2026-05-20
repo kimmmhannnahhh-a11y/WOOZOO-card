@@ -664,12 +664,7 @@ function detectPdfType(filename) {
 
 const SIG_COORDS = {
   service_p1: [
-    { x: 75.8, y: 13.1, fontSize: 22 },
-    { x: 75.8, y: 16.9, fontSize: 22 },
-    { x: 79.4, y: 45.1, fontSize: 22 },
-    { x: 76.6, y: 93.6, fontSize: 22 },
-    { x: 26.0, y: 49.4, fontSize: 22 },
-    { x: 72.5, y: 74.8, fontSize: 28 },
+    { x: 76.6, y: 93.6, fontSize: 22 },  // 신청/가입자 서명
   ],
   wired_p1: [
     { x: 79.0, y: 16.8, fontSize: 16 },
@@ -1658,43 +1653,88 @@ const FIELD_COORDS = {
 
 function parseMemo(text) {
   const data = {};
-  const get = (re) => { const m = text.match(re); return m ? m[1].trim() : ''; };
-  data.name = get(/■\s*고객명[^:]*:\s*([^\n]+)/);
-  data.rrn = get(/■\s*식별번호[^:]*:\s*([^\n]+)/);
-  const phoneRaw = get(/■\s*명의자연락처[^:]*:\s*([^\n]+)/);
-  const phoneMatch = phoneRaw.match(/(\d{2,3}-?\d{3,4}-?\d{4})/);
-  data.phone = phoneMatch ? phoneMatch[1] : phoneRaw;
-  data.address = get(/■\s*설치주소[^:]*:\s*([^\n]+)/);
-  data.email = get(/■\s*청구매체[^:]*:\s*([^\n]+)/);
-  const autoPay = get(/■\s*자동이체[^:]*:\s*([^\n]+)/);
-  const apMatch = autoPay.match(/^(\S+)\s+(\S+)/);
-  if (apMatch) { data.bank = apMatch[1]; data.account = apMatch[2]; }
-  const giftAcc = get(/★\s*사은계좌[^:]*:\s*([^\n]+)/);
-  if (giftAcc) {
-    if (giftAcc.includes('/')) {
-      const parts = giftAcc.split('/').map(s => s.trim());
-      if (!data.bank && parts[0]) data.bank = parts[0];
-      if (!data.account && parts[1]) data.account = parts[1];
-      if (parts[2]) data.accountHolder = parts[2];
-      if (parts[3]) data.accountRrn = parts[3];
+
+  // 빈값 안전 추출 — 공백/빈줄이면 '' 반환
+  const getSafe = (re) => {
+    const m = text.match(re);
+    const val = m ? m[1].trim() : '';
+    return /^[\s\u3000]*$/.test(val) ? '' : val;
+  };
+
+  data.name        = getSafe(/■\s*고객명[^:]*:\s*([^\n]*)/);
+  data.rrn         = getSafe(/■\s*식별번호[^:]*:\s*([^\n]*)/);
+
+  // 연락처: 010-xxxx-xxxx 패턴만 추출
+  const phoneRaw   = getSafe(/■\s*명의자연락처[^:]*:\s*([^\n]*)/);
+  const phoneMatch = phoneRaw.match(/(\d{2,3}-\d{3,4}-\d{4})/);
+  data.phone       = phoneMatch ? phoneMatch[1] : '';
+
+  data.address     = getSafe(/■\s*설치주소[^:]*:\s*([^\n]*)/);
+
+  // 청구매체: 이메일이면 저장, 아니면 무시
+  const emailRaw   = getSafe(/■\s*청구매체[^:]*:\s*([^\n]*)/);
+  data.email       = (emailRaw && emailRaw.includes('@')) ? emailRaw : '';
+
+  // 자동이체 파싱 (계좌 or 카드)
+  const autoPay    = getSafe(/■\s*자동이체[^:]*:\s*([^\n]*)/);
+  if (autoPay) {
+    const cardNumM = autoPay.match(/([\d]{4}-[\d]{4}-[\d]{4}-[\d]{4})/);
+    const cardExpM = autoPay.match(/(\d{2}\/\d{2})/);
+    const bankM    = autoPay.match(/^([^\s]+)/);
+    if (cardNumM) {
+      data.bank    = bankM ? bankM[1] : '';
+      data.account = cardNumM[1];
+      data.cardExp = cardExpM ? cardExpM[1] : '';
+      data.payType = 'card';
     } else {
-      const gm = giftAcc.match(/^(\S+)\s+(\S+)/);
-      if (gm && !data.bank) { data.bank = gm[1]; data.account = gm[2]; }
+      const acM    = autoPay.match(/^(\S+)\s+(\S+)/);
+      if (acM) { data.bank = acM[1]; data.account = acM[2]; data.payType = 'account'; }
     }
   }
-  if (!data.accountHolder && data.name) data.accountHolder = data.name;
-  if (!data.accountRrn && data.rrn) data.accountRrn = data.rrn;
-  data.carrier = get(/□\s*가입통신사[^:]*:\s*([^\n]+)/);
-  data.internet = get(/□\s*인터넷상품명[^:]*:\s*([^\n]+)/);
-  data.tv = get(/□\s*TV\/?셋탑[^:]*:\s*([^\n]+)/);
-  data.combo = get(/□\s*결합[^:]*:\s*([^\n]+)/);
-  data.installDate = get(/□\s*설치희망일[^:]*:\s*([^\n]+)/);
-  const ifee = get(/□\s*설치비[^:]*:\s*([^\n]+)/);
-  data.installFee = ifee.match(/(\d{1,3}(?:,?\d{3})*)/)?.[1] || ifee;
-  const mfee = get(/□\s*월요금[^:]*[:\/]\s*([^\n]+)/);
-  data.monthlyFee = mfee.match(/(\d{1,3}(?:,?\d{3})*)/)?.[1] || mfee;
+
+  // 사은계좌 파싱
+  const giftAcc = getSafe(/★\s*사은계좌[^:]*:\s*([^\n]*)/);
+  if (giftAcc) {
+    if (giftAcc.includes('/')) {
+      const parts        = giftAcc.split('/').map(s => s.trim());
+      data.giftBank      = parts[0] || '';
+      data.giftAccount   = parts[1] || '';
+      data.accountHolder = parts[2] || data.name;
+      data.accountRrn    = parts[3] || data.rrn;
+    } else {
+      const parts        = giftAcc.trim().split(/\s+/);
+      data.giftBank      = parts[0] || '';
+      data.giftAccount   = parts[1] || '';
+      data.accountHolder = parts[2] || data.name;
+      data.accountRrn    = data.rrn;
+    }
+  }
+  if (!data.accountHolder) data.accountHolder = data.name;
+  if (!data.accountRrn)    data.accountRrn    = data.rrn;
+
+  // 상품 정보
+  data.carrier     = getSafe(/□\s*가입통신사[^:]*:\s*([^\n]*)/);
+  data.internet    = getSafe(/□\s*인터넷상품명[^:]*:\s*([^\n]*)/);
+  data.tv          = getSafe(/□\s*TV\/?셋탑[^:]*:\s*([^\n]*)/);
+
+  // 결합: 빈칸이면 '' (다음 □줄 먹는 버그 방지)
+  const comboRaw   = getSafe(/□\s*결합[^:\n]*:\s*([^\n]*)/);
+  data.combo       = /^[□\s]*$/.test(comboRaw) ? '' : comboRaw;
+
+  data.installDate = getSafe(/□\s*설치희망일[^:]*:\s*([^\n]*)/);
+  data.memoNote    = getSafe(/□\s*기타요청사항[^:]*:\s*([^\n]*)/);
+
+  // 설치비: 슬래시 앞 숫자만 (56200/71250 → 56200)
+  const ifeeRaw    = getSafe(/□\s*설치비[^:]*:\s*([^\n]*)/);
+  data.installFee  = ((ifeeRaw.split('/')[0]).match(/(\d+)/) || ['',''])[1];
+
+  // 월요금: 슬래시 앞 숫자만 (46200/40700 → 46200)
+  const mfeeRaw    = getSafe(/□\s*월요금[^:\n]*[:\/]\s*([^\n]*)/);
+  data.monthlyFee  = ((mfeeRaw.split('/')[0]).match(/(\d+)/) || ['',''])[1];
+
   return data;
 }
+
 
 function parseOcrText(text) {
   const data = {};
