@@ -120,6 +120,8 @@
   .overlay-item.checkmark.auto-fill { background: rgba(255, 245, 150, 0.75) !important; }
   .overlay-item.auto-fill:hover,
   .overlay-item.checkmark.auto-fill:hover { background: rgba(255, 235, 100, 0.9) !important; }
+  .overlay-item.warning-fill { background: #ffe0e6 !important; color: #e60012 !important; font-weight: 900 !important; border: 1.5px solid #e60012 !important; padding: 2px 6px !important; border-radius: 3px !important; }
+  .overlay-item.warning-fill:hover { background: #ffc8d2 !important; }
   @media print {
     .overlay-item.auto-fill,
     .overlay-item.checkmark.auto-fill { background: transparent !important; }
@@ -385,6 +387,17 @@
   .slot-pdf-include .label-sub { font-size: 11px; color: #5a8c5e; margin-top: 1px; }
 
   .header-divider { width: 1px; height: 20px; background: #444; margin: 0 2px; }
+  .checklist-item {
+    display: flex; align-items: flex-start; gap: 10px;
+    padding: 10px 12px; border-radius: 6px; font-size: 13px;
+    border: 1px solid;
+  }
+  .checklist-item.ok { background: #f4fff7; border-color: #b8e6c0; color: #1a5d1a; }
+  .checklist-item.warn { background: #ffe0e6; border-color: #e60012; color: #c00; }
+  .checklist-item.info { background: #fff8e6; border-color: #f0c040; color: #7a5a00; }
+  .checklist-icon { font-size: 15px; flex-shrink: 0; margin-top: 1px; }
+  .checklist-label { font-weight: 600; line-height: 1.4; }
+  .checklist-value { font-size: 11px; color: inherit; opacity: 0.8; margin-top: 2px; }
 </style>
 </head>
 <body>
@@ -496,14 +509,14 @@
           </label>
         <button id="addHolderSigBtn" style="display:none" disabled></button>
 
-        <div class="field-group">
-          <label class="field-label">필기체 폰트</label>
-          <select id="sigFont">
-            <option value="">Nanum Pen Script (단정한 펜글씨)</option>
-            <option value="font-gaegu">Gaegu (자연스러운 손글씨)</option>
-            <option value="font-single">Single Day (자유로운 손글씨)</option>
-          </select>
-          <div class="signature-preview" id="sigPreview">홍길동</div>
+        <select id="sigFont" style="display:none"></select>
+        <div id="sigPreview" style="display:none"></div>
+
+        <div style="margin-bottom:4px;">
+          <div style="font-size:12px;font-weight:600;color:#333;margin-bottom:8px;">📋 확인목록</div>
+          <div id="checklistItems" style="display:flex;flex-direction:column;gap:6px;">
+            <div style="text-align:center;color:#bbb;font-size:12px;padding:20px 0;">메모 파싱 후 확인목록이 표시됩니다</div>
+          </div>
         </div>
         <!-- addSigBtn 숨김 처리 (기능은 유지) -->
         <button id="addSigBtn" style="display:none" disabled></button>
@@ -540,6 +553,7 @@
           <button class="btn btn-secondary" id="reparseOcrBtn">↻ 인식 결과 다시 파싱</button>
         </div>
       </div>
+
 
       <!-- hidden 데이터 필드 (호환성 유지) -->
       <div style="display:none">
@@ -1330,16 +1344,10 @@ function createOverlayElement(item) {
   el.dataset.itemId = item.id;
   if (item.color) el.style.color = item.color;
   if (item.warning) {
-    el.style.background = '#ffe0e6';
-    el.style.color = '#e60012';
-    el.style.fontWeight = '900';
-    el.style.padding = '2px 6px';
-    el.style.borderRadius = '3px';
-    el.style.border = '1.5px solid #e60012';
-    el.style.fontSize = (item.fontSize || 12) + 'px';
+    el.classList.add('warning-fill');
   }
   // 파싱 자동입력 텍스트/체크: 연한 노란색 배경
-  if (item.id && item.id.startsWith('auto_') && (item.kind === 'text' || item.kind === 'check')) {
+  if (item.id && item.id.startsWith('auto_') && (item.kind === 'text' || item.kind === 'check') && !item.warning) {
     el.classList.add('auto-fill');
   }
 
@@ -1975,6 +1983,7 @@ $('parseMemoBtn').onclick = () => {
   if (state.pages.length === 0) { showToast('PDF를 먼저 업로드하세요. 파싱 데이터는 저장됨.'); return; }
   applyDataToPages();
   showToast('파싱 완료!');
+  updateChecklist();
   if ($('sigAllCheckbox').checked) {
     const name = $('sigName').value.trim() || state.data.name || '';
     if (name) applySignatureToAll(name);
@@ -2137,23 +2146,9 @@ $('sigName').addEventListener('input', () => {
   }
 });
 
-$('sigFont').addEventListener('change', () => {
-  updateSigPreview();
-  if ($('sigAllCheckbox').checked) {
-    const name = $('sigName').value.trim() || state.data.name || '';
-    if (name) applySignatureToAll(name);
-  }
-});
 
-function updateSigPreview() {
-  const name = $('sigName').value || '홍길동';
-  const font = $('sigFont').value;
-  const preview = $('sigPreview');
-  preview.textContent = name;
-  if (font === 'font-gaegu') preview.style.fontFamily = "'Gaegu', cursive";
-  else if (font === 'font-single') preview.style.fontFamily = "'Single Day', cursive";
-  else preview.style.fontFamily = "'Nanum Pen Script', cursive";
-}
+
+function updateSigPreview() {}
 
 $('addHolderSigBtn').onclick = () => {
   const holderName = state.data.accountHolder || '';
@@ -2181,6 +2176,47 @@ $('addSigBtn').onclick = () => {
   state.overlays[page.id].push(overlay);
   renderOverlays(); selectOverlay(overlay.id);
 };
+
+function updateChecklist() {
+  const d = state.data;
+  const items = [];
+
+  const add = (status, icon, label, value) => items.push({ status, icon, label, value });
+
+  // 필수 항목 체크
+  d.name       ? add('ok',   '✅', '고객명',        d.name)       : add('warn', '⚠️', '고객명 없음', '확인 필요');
+  d.rrn        ? add('ok',   '✅', '식별번호',       d.rrn)        : add('warn', '⚠️', '식별번호 없음', '확인 필요');
+  d.phone      ? add('ok',   '✅', '연락처',         d.phone)      : add('warn', '⚠️', '연락처 없음', '확인 필요');
+  d.address    ? add('ok',   '✅', '설치주소',       d.address)    : add('warn', '⚠️', '설치주소 없음', '확인 필요');
+  d.bank       ? add('ok',   '✅', '자동이체 은행',  d.bank)       : add('warn', '⚠️', '자동이체 은행 없음', '확인 필요');
+  d.account    ? add('ok',   '✅', '계좌번호',       d.account)    : add('warn', '⚠️', '계좌번호 없음', '확인 필요');
+  d.internet   ? add('ok',   '✅', '인터넷 상품',   d.internet)   : add('warn', '⚠️', '인터넷 상품 없음', '확인 필요');
+  d.installDate? add('ok',   '✅', '설치희망일',     d.installDate): add('warn', '⚠️', '설치희망일 없음', '확인 필요');
+  d.monthlyFee ? add('ok',   '✅', '월요금',         d.monthlyFee) : add('warn', '⚠️', '월요금 없음', '확인 필요');
+  d.installFee ? add('ok',   '✅', '설치비',         d.installFee) : add('info', 'ℹ️', '설치비 없음', '무료 설치일 수 있음');
+
+  // 예금주 생년월일 경고
+  if (d.accountRrnMissing || d.accountRrn === '⚠ 입력해주세요') {
+    add('warn', '⚠️', '예금주 생년월일', '수동 입력 필요');
+  } else if (d.accountRrn) {
+    add('ok', '✅', '예금주 생년월일', d.accountRrn);
+  }
+
+  // 예금주 이름
+  d.accountHolder ? add('ok', '✅', '예금주', d.accountHolder) : add('info', 'ℹ️', '예금주 미확인', '고객명과 동일로 처리됨');
+
+  const container = $('checklistItems');
+  if (!container) return;
+  container.innerHTML = '';
+  items.forEach(({ status, icon, label, value }) => {
+    const el = document.createElement('div');
+    el.className = 'checklist-item ' + status;
+    el.innerHTML = `<div class="checklist-icon">${icon}</div><div><div class="checklist-label">${label}</div><div class="checklist-value">${escHtml(value)}</div></div>`;
+    container.appendChild(el);
+  });
+
+
+}
 
 $('printBtn').onclick = async () => { await preparePrintArea(); window.print(); };
 async function preparePrintArea() {
