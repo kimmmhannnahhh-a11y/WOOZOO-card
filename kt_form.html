@@ -1682,7 +1682,7 @@ function parseMemo(text) {
   };
 
   // ── 기본 정보 ──
-  data.name = getSafe(/■\s*고객명[^:]*:\s*([^\n]*)/);
+  data.name = (text.match(/■\s*고객명(?:[^)■\n]*\))?\s*[:：]?\s*([가-힣a-zA-Z][가-힣a-zA-Z\s·]{0,15})/) || ['',''])[1].trim();
 
   // 식별번호 → 생년월일(앞6자리) + 성별만 추출, 전체 주민번호는 저장 안 함
   const rrnFull = getSafe(/■\s*식별번호[^:]*:\s*([^\n]*)/);
@@ -1735,7 +1735,7 @@ function parseMemo(text) {
   // ── 자동이체 파싱 ──
   const autoPay = getSafe(/■\s*자동이체[^:]*:\s*([^\n]*)/);
   if (autoPay) {
-    const cardNumM = autoPay.match(/([\d]{4}-[\d]{4}-[\d]{4}-[\d]{4})/);
+    const cardNumM = autoPay.match(/([\d]{3,4}[-\d]{5,20}[\d]{3,4})/);
     const cardExpM = autoPay.match(/(\d{2}\/\d{2})/);
     const bankM    = autoPay.match(/^([^\s]+)/);
     // 예금주: 마지막 단어가 한글 이름이면 사용, '본인'이거나 없으면 고객명
