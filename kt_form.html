@@ -1879,16 +1879,32 @@ function parseOcrText(text) {
   const phoneM = joined.match(/(010[-\s]?\d{3,4}[-\s]?\d{4})/);
   if (phoneM) data.phone = phoneM[1].replace(/\s/g,'').replace(/(\d{3})(\d{3,4})(\d{4})/,'$1-$2-$3');
 
-  // 주소
-  const addrM = joined.match(/((?:서울|경기|인천|부산|대구|광주|대전|울산|세종|강원|충북|충남|전북|전남|경북|경남|제주)[가-힣\d\s\-(),.]+(?:동|로|길|아파트|빌라|오피스텔)[가-힣\d\s\-().]+)/);
-  if (addrM) data.address = addrM[1].trim().replace(/\s+/g,' ');
+  // 주소 (오인식 보정 포함)
+  const fixAddr = (s) => s
+    .replace(/섬남/g,'성남').replace(/셤남/g,'성남').replace(/점자/g,'정자')
+    .replace(/분탕/g,'분당').replace(/분방/g,'분당').replace(/으드/g,'우드')
+    .replace(/\s+/g,' ').trim();
+  // 주소: 광역시/도 시작 ~ 파이프(|) 또는 줄끝까지 최대한 길게
+  const addrM = joined.match(/((?:서울|경기|인천|부산|대구|광주|대전|울산|세종|강원|충북|충남|전북|전남|경북|경남|제주)[^|\n]{10,80})/);
+  if (addrM) {
+    // | 기호 이전까지만, 앞뒤 공백 제거
+    let addr = addrM[1].split('|')[0].trim();
+    // 우편번호(5자리) 있으면 제거
+    addr = addr.replace(/^\d{5}\s*[.。]?\s*/, '');
+    // 연속 공백 정리
+    addr = addr.replace(/\s+/g, ' ').trim();
+    data.address = addr;
+  }
 
-  // 은행명
-  const bankM = joined.match(/(신한|국민|우리|하나|기업|농협|새마을|SC제일|씨티|카카오|토스|케이뱅크|부산|광주|전북|경남|수협|산업|씨티)/);
+  // 은행명 (오인식 보정 포함)
+  const fixedJoined = joined
+    .replace(/놈혐|농혐|놈협|농협/g,'농협').replace(/신안|신합/g,'신한')
+    .replace(/국인|국믄/g,'국민').replace(/우리/g,'우리');
+  const bankM = fixedJoined.match(/(농협|신한|국민|우리|하나|기업|새마을|SC제일|씨티|카카오|토스|케이뱅크|수협|산업)/);
   if (bankM) data.bank = bankM[1];
 
   // 계좌번호: 10자리 이상 숫자
-  const accM = joined.match(/계좌번호\s*(\d[\d\-]{9,})/) ||
+  const accM = joined.replace(/계좌번회/g,'계좌번호').match(/계좌번호\s*(\d[\d\-]{9,})/) ||
                joined.match(/(\d{3,4}[-]\d{2,4}[-]\d{5,})/);
   if (accM) data.account = accM[1].replace(/[-\s]/g,'');
   if (!data.account) {
